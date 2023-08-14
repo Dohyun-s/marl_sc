@@ -1,4 +1,13 @@
 import numpy as np
+import os
+import sys
+# Get the parent directory path
+import pdb
+pdb.set_trace()
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# Add the parent directory to sys.path
+sys.path.append("..")
 from multiagent.core import World, Agent, Landmark
 from multiagent.scenario import BaseScenario
 import random
@@ -130,7 +139,7 @@ class Scenario(BaseScenario):
         good_agent = self.good_agents(world)
         adversaries = self.adversaries(world)
         if shape:
-            rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))) for a in agents])
+            rew -= 0.1 * min([np.sqrt(np.sum(np.square(a.state.p_pos - agent.state.p_pos))) for a in good_agent])
         # if agent.collide:
         #     for ag in agents:
         #         for adv in adversaries:
@@ -255,4 +264,34 @@ class Scenario(BaseScenario):
         #         if other is agent: continue
         #         comm.append(other.state.c)
         #     return np.concatenate([agent.state.p_vel] + entity_pos + [goal_color[1]] + comm)
-                
+
+if __name__ == '__main__':
+    # parse arguments
+    # load scenario from script
+    # create world
+    scenario = Scenario()
+    world = scenario.make_world()
+    # create multiagent environment
+    from multiagent.environment import MultiAgentEnv
+    from multiagent.policy import InteractivePolicy
+    env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation, info_callback=None, shared_viewer = False)
+    # render call to create viewer window (necessary only for interactive policies)
+    env.render()
+    # create interactive policies for each agent
+    policies = [InteractivePolicy(env,i) for i in range(env.n)]
+    # execution loop
+    obs_n = env.reset()
+    while True:
+        # query for action from each agent's policy
+        act_n = []
+        print(1)
+        for i, policy in enumerate(policies):
+            act_n.append(policy.action(obs_n[i]))
+        # step environment
+        obs_n, reward_n, done_n, _ = env.step(act_n)
+        # render all agent views
+        env.render()
+        # display rewards
+        #for agent in env.world.agents:
+        #    print(agent.name + " reward: %0.3f" % env._get_reward(agent))
+
