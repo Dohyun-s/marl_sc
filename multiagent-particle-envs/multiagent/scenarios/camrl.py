@@ -2,8 +2,6 @@ import numpy as np
 import os
 import sys
 # Get the parent directory path
-import pdb
-pdb.set_trace()
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 # Add the parent directory to sys.path
