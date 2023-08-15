@@ -62,7 +62,7 @@ class Scenario(BaseScenario):
             agent.accel = 3.0 if agent.adversary else 4.0
             agent.max_speed = 1.0 if agent.adversary else 1.3
         # make initial conditions
-        self.reset_world(world)
+        # self.reset_world(world, np_random)
         return world
 
     # def reset(self, seed=None, options=None):
@@ -94,7 +94,7 @@ class Scenario(BaseScenario):
     #     self._agent_selector = agent_selector(self.agents)
     #     self.agent_selection = self._agent_selector.next()
 
-    def reset_world(self, world):
+    def reset_world(self, world, np_random):
         # random properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = np.array([0.45, 0.95, 0.45]) if not agent.adversary else np.array([0.95, 0.45, 0.45])
