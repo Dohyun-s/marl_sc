@@ -9,7 +9,30 @@ from pettingzoo.mpe._mpe_utils.core import Agent, World
 from pettingzoo.mpe._mpe_utils.scenario import BaseScenario
 from pettingzoo.mpe._mpe_utils.simple_env import SimpleEnv, make_env
 from pettingzoo.utils.conversions import parallel_wrapper_fn
+from pettingzoo.utils import agent_selector, wrappers
+
 import random
+
+class raw_env(SimpleEnv, EzPickle):
+    def __init__(self, max_cycles=25, continuous_actions=False, render_mode=None):
+        EzPickle.__init__(
+            self,
+            max_cycles=max_cycles,
+            continuous_actions=continuous_actions,
+            render_mode=render_mode,
+        )
+        scenario = Scenario()
+        world = scenario.make_world()
+        SimpleEnv.__init__(
+            self,
+            scenario=scenario,
+            world=world,
+            render_mode=render_mode,
+            max_cycles=max_cycles,
+            continuous_actions=continuous_actions,
+        )
+        self.metadata["name"] = "camrl"
+
 
 class Scenario(BaseScenario):
     def make_world(self):
@@ -20,9 +43,9 @@ class Scenario(BaseScenario):
         num_good_agents = 4
         num_adversaries = 6
         num_agents = num_adversaries + num_good_agents
-        num_landmarks = 1
+        # num_landmarks = 1
         # num_food = 2
-        num_forests = 2
+        # num_forests = 2
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
         for i, agent in enumerate(world.agents):
@@ -38,6 +61,34 @@ class Scenario(BaseScenario):
         self.reset_world(world)
         return world
 
+    def reset(self, seed=None, options=None):
+        """
+        Reset needs to initialize the following attributes
+        - agents
+        - rewards
+        - _cumulative_rewards
+        - terminations
+        - truncations
+        - infos
+        - agent_selection
+        And must set up the environment so that render(), step(), and observe()
+        can be called without issues.
+        Here it sets up the state dictionary which is used by step() and the observations dictionary which is used by step() and observe()
+        """
+        self.agents = self.possible_agents[:]
+        self.rewards = {agent: 0 for agent in self.agents}
+        self._cumulative_rewards = {agent: 0 for agent in self.agents}
+        self.terminations = {agent: False for agent in self.agents}
+        self.truncations = {agent: False for agent in self.agents}
+        self.infos = {agent: {} for agent in self.agents}
+        self.state = {agent: NONE for agent in self.agents}
+        self.observations = {agent: NONE for agent in self.agents}
+        self.num_moves = 0
+        """
+        Our agent_selector utility allows easy cyclic stepping through the agents list.
+        """
+        self._agent_selector = agent_selector(self.agents)
+        self.agent_selection = self._agent_selector.next()
 
     def reset_world(self, world):
         # random properties for agents
@@ -199,34 +250,24 @@ class Scenario(BaseScenario):
             return np.concatenate([agent.state.p_vel] + entity_pos + other_pos)
 
 if __name__ == '__main__':
-    # parse arguments
-    # load scenario from script
-    # create world
-    scenario = Scenario()
-    world = scenario.make_world()
-    # create multiagent environment
-    from multiagent.environment import MultiAgentEnv
-    from multiagent.policy import InteractivePolicy
-    env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation, info_callback=None, shared_viewer = False)
-    # render call to create viewer window (necessary only for interactive policies)
-    env.render()
-    # create interactive policies for each agent
-    policies = [InteractivePolicy(env,i) for i in range(env.n)]
-    # execution loop
-    obs_n = env.reset()
-    for i in range(1000):
-        # query for action from each agent's policy
-        act_n = []
-        for i, policy in enumerate(policies):
-            act_n.append(policy.action(obs_n[i]))
-        # step environment
-        obs_n, reward_n, done_n, _ = env.step(act_n)
+    env = make_env(raw_env)
+    # if render_mode == "ansi":
+        # env = wrappers.CaptureStdoutWrapper(env)
+    # this wrapper helps error handling for discrete action spaces
+    env = wrappers.AssertOutOfBoundsWrapper(env)
+    # Provides a wide vareity of helpful user errors
+    # Strongly recommended
+    env = wrappers.OrderEnforcingWrapper(env)
 
-        # render all agent views
-        if i == 9999:
-            env.render()
+    # parallel_env = parallel_wrapper_fn(env)
+    # env.reset()
+    for agent in env.agent_iter():
+        observation, reward, termination, truncation, info = env.last()
 
-        # display rewards
-        #for agent in env.world.agents:
-        #    print(agent.name + " reward: %0.3f" % env._get_reward(agent))
+        if termination or truncation:
+            action = None
+        else:
+            action = env.action_space(agent).sample() # this is where you would insert your policy
 
+        env.step(action)
+    env.close()
