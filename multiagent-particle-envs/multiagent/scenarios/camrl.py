@@ -1,10 +1,8 @@
+#pip install pyglet==1.5.27
 import numpy as np
 import os
 import sys
 # Get the parent directory path
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-# Add the parent directory to sys.path
 sys.path.append("..")
 from multiagent.core import World, Agent, Landmark
 from multiagent.scenario import BaseScenario
@@ -178,90 +176,24 @@ class Scenario(BaseScenario):
     def observation(self, agent, world):
         # get positions of all entities in this agent's reference frame
         entity_pos = []
-        for entity in world.landmarks:
-            if not entity.boundary:
-                entity_pos.append(entity.state.p_pos - agent.state.p_pos)
-
-        # in_forest = [np.array([-1]), np.array([-1])]
-        # inf1 = False
-        # inf2 = False
-        # if self.is_collision(agent, world.forests[0]):
-        #     in_forest[0] = np.array([1])
-        #     inf1= True
-        # if self.is_collision(agent, world.forests[1]):
-        #     in_forest[1] = np.array([1])
-        #     inf2 = True
-
-        food_pos = []
-        for entity in world.food:
-            if not entity.boundary:
-                food_pos.append(entity.state.p_pos - agent.state.p_pos)
+        for entity in world.landmarks:  # world.entities:
+            entity_pos.append(entity.state.p_pos - agent.state.p_pos)
+        # entity colors
+        entity_color = []
+        for entity in world.landmarks:  # world.entities:
+            entity_color.append(entity.color)
         # communication of all other agents
         comm = []
-        # other_pos = []
-        # other_vel = []
-        # for other in world.agents:
-        #     if other is agent: continue
-        #     comm.append(other.state.c)
-        #     oth_f1 = self.is_collision(other, world.forests[0])
-        #     oth_f2 = self.is_collision(other, world.forests[1])
-        #     if (inf1 and oth_f1) or (inf2 and oth_f2) or (not inf1 and not oth_f1 and not inf2 and not oth_f2) or agent.leader:  #without forest vis
-        #         other_pos.append(other.state.p_pos - agent.state.p_pos)
-        #         if not other.adversary:
-        #             other_vel.append(other.state.p_vel)
-        #     else:
-        #         other_pos.append([0, 0])
-        #         if not other.adversary:
-        #             other_vel.append([0, 0])
-
-        # to tell the pred when the prey are in the forest
-        # prey_forest = []
-        # ga = self.good_agents(world)
-        # for a in ga:
-        #     if any([self.is_collision(a, f) for f in world.forests]):
-        #         prey_forest.append(np.array([1]))
-        #     else:
-        #         prey_forest.append(np.array([-1]))
-        # # to tell leader when pred are in forest
-        # prey_forest_lead = []
-        # for f in world.forests:
-        #     if any([self.is_collision(a, f) for a in ga]):
-        #         prey_forest_lead.append(np.array([1]))
-        #     else:
-        #         prey_forest_lead.append(np.array([-1]))
-
-        comm = [world.agents[0].state.c]
-
-        if agent.adversary and not agent.leader:
-            # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel + in_forest + comm)
-            return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + comm)
-        if agent.leader:
-            return np.concatenate(
-                # [agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel + in_forest + comm)
-                [agent.state.p_vel] + [agent.state.p_pos] + entity_pos + comm)
+        other_pos = []
+        for other in world.agents:
+            if other is agent: continue
+            comm.append(other.state.c)
+            other_pos.append(other.state.p_pos - agent.state.p_pos)
+        if not agent.adversary:
+            return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + [agent.color] + entity_pos + entity_color + other_pos)
         else:
-            return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos)
-
-        # def observation(self, agent, world):
-        #     # goal color
-        #     goal_color = [np.zeros(world.dim_color), np.zeros(world.dim_color)]
-        #     if agent.goal_b is not None:
-        #         goal_color[1] = agent.goal_b.color 
-
-        #     # get positions of all entities in this agent's reference frame
-        #     entity_pos = []
-        #     for entity in world.landmarks:
-        #         entity_pos.append(entity.state.p_pos - agent.state.p_pos)
-        #     # entity colors
-        #     entity_color = []
-        #     for entity in world.landmarks:
-        #         entity_color.append(entity.color)
-        #     # communication of all other agents
-        #     comm = []
-        #     for other in world.agents:
-        #         if other is agent: continue
-        #         comm.append(other.state.c)
-        #     return np.concatenate([agent.state.p_vel] + entity_pos + [goal_color[1]] + comm)
+            #other_pos = list(reversed(other_pos)) if random.uniform(0,1) > 0.5 else other_pos  # randomize position of other agents in adversary network
+            return np.concatenate([agent.state.p_vel] + entity_pos + other_pos)
 
 if __name__ == '__main__':
     # parse arguments
@@ -279,16 +211,18 @@ if __name__ == '__main__':
     policies = [InteractivePolicy(env,i) for i in range(env.n)]
     # execution loop
     obs_n = env.reset()
-    while True:
+    for i in range(1000):
         # query for action from each agent's policy
         act_n = []
-        print(1)
         for i, policy in enumerate(policies):
             act_n.append(policy.action(obs_n[i]))
         # step environment
         obs_n, reward_n, done_n, _ = env.step(act_n)
+
         # render all agent views
-        env.render()
+        if i == 9999:
+            env.render()
+
         # display rewards
         #for agent in env.world.agents:
         #    print(agent.name + " reward: %0.3f" % env._get_reward(agent))
