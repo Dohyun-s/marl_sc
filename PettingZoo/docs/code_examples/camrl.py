@@ -2,8 +2,6 @@
 
 # env = camrl.env(render_mode="human")
 # env.reset(seed=42)
-# import pdb
-# pdb.set_trace()
 
 # for agent in env.agent_iter():
 #     observation, reward, termination, truncation, info = env.last()
