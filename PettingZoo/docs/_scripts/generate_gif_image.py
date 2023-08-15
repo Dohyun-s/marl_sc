@@ -11,7 +11,9 @@ from pettingzoo.utils.all_modules import all_environments
 
 def generate_data(nameline, module):
     dir = f"frames/{nameline}/"
-    os.mkdir(dir)
+    from pathlib import Path
+    if not Path(dir).is_dir():
+        os.mkdir(dir)
     env = module.env(render_mode="rgb_array")
     # env = gin_rummy_v0.env()
     env.reset()

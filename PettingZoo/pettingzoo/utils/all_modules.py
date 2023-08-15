@@ -1,7 +1,4 @@
-
-from pettingzoo.mpe import (
-    camrl
-)
+from pettingzoo.mpe import camrl_v3
 
 all_prefixes = ["atari", "classic", "butterfly", "mpe", "sisl"]
 
@@ -13,5 +10,5 @@ manual_environments = {
 }
 
 all_environments = {
-    "mpe/camrl": camrl,
+    "mpe_v3/camrl": camrl_v3,
 }

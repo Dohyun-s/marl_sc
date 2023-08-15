@@ -1,4 +1,4 @@
-from pettingzoo.mpe.simple_world_comm.simple_world_comm import (
+from pettingzoo.mpe.camrl.camrl import (
     env,
     parallel_env,
     raw_env,

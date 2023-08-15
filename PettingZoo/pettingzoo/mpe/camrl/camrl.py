@@ -34,6 +34,10 @@ class raw_env(SimpleEnv, EzPickle):
         self.metadata["name"] = "camrl"
 
 
+env = make_env(raw_env)
+parallel_env = parallel_wrapper_fn(env)
+
+
 class Scenario(BaseScenario):
     def make_world(self):
         world = World()
@@ -159,8 +163,8 @@ class Scenario(BaseScenario):
             for a in good_agent:
                 if self.is_collision(a, agent):
                     ### a.action not implemented ###
-                    a.action = random.randint(0, 50)
-                    agent.weight += a.action
+                    a.action_weight = random.randint(0, 50)
+                    agent.weight += a.action_weight
                     a.weight += agent.weight
 
                     agent.inventory += agent.weight
@@ -248,27 +252,3 @@ class Scenario(BaseScenario):
         else:
             #other_pos = list(reversed(other_pos)) if random.uniform(0,1) > 0.5 else other_pos  # randomize position of other agents in adversary network
             return np.concatenate([agent.state.p_vel] + entity_pos + other_pos)
-
-if __name__ == '__main__':
-    env = make_env(raw_env)
-    parallel_env = parallel_wrapper_fn(env)
-    # if render_mode == "ansi":
-    env = wrappers.CaptureStdoutWrapper(env)
-    # this wrapper helps error handling for discrete action spaces
-    env = wrappers.AssertOutOfBoundsWrapper(env)
-    # Provides a wide vareity of helpful user errors
-    # Strongly recommended
-    env = wrappers.OrderEnforcingWrapper(env)
-
-    # parallel_env = parallel_wrapper_fn(env)
-    # env.reset()
-    for agent in env.agent_iter():
-        observation, reward, termination, truncation, info = env.last()
-
-        if termination or truncation:
-            action = None
-        else:
-            action = env.action_space(agent).sample() # this is where you would insert your policy
-
-        env.step(action)
-    env.close()
